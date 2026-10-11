@@ -20,7 +20,7 @@ async function ensureProfile(){
   const md=currentUser.user_metadata||{};
   const avatar=md.avatar_url||null;
   const nickname=accountLabel();
-  const upd=await db.from('profiles').upsert({id:currentUser.id,nickname,avatar_url:avatar},{onConflict:'id'});
+  const upd=await db.from('profiles').upsert({id:currentUser.id,nickname,avatar_url:avatar},{onConflict:'id',ignoreDuplicates:true});
   if(upd.error) console.warn(upd.error);
 }
 async function startAuth(){
@@ -33,6 +33,7 @@ async function startAuth(){
     adminUser=r.data===true;
   } else adminUser=false;
   showAuth();
+  if(currentUser)renderNotifications();
   if(location.hash.startsWith('#/players')||location.hash.startsWith('#/admin')||location.hash.startsWith('#/submit')||location.hash.startsWith('#/chart/')) route();
 }
 function showAuth(){
@@ -73,6 +74,68 @@ async function fetchPlayerStats(){
   return r.data||[];
 }
 function fmtNum(v,fix=2){return (v===null||v===undefined||Number.isNaN(Number(v)))?'—':Number(v).toFixed(fix)}
+const titleColors={COMMON:'#F3F0EA',RARE:'#83BBFF',EPIC:'#C39AFF',LEGENDARY:'#F4C873'};
+function titleSpan(t){return t?`<span class="title-chip" style="color:${titleColors[t.rarity]||'#F3F0EA'}">${safe(t.name)}</span>`:''}
+async function renderNotifications(){
+  if(!db||!currentUser)return;
+  const q=await db.from('mdkr_notifications').select('id,type,chart_id,created_at,read_at,actor_id').is('read_at',null).order('created_at',{ascending:false}).limit(30);
+  if(q.error)return;
+  const items=q.data||[];
+  let area=document.querySelector('#account-area');
+  if(!area)return;
+  let bell=area.querySelector('#mdkr-bell');
+  if(!bell){bell=document.createElement('button');bell.id='mdkr-bell';bell.className='button';area.prepend(bell)}
+  bell.textContent=`🔔 ${items.length}`;
+  bell.onclick=async()=>{
+    const popup=document.querySelector('#mdkr-notifications');
+    if(popup){popup.remove();return}
+    const panel=document.createElement('div'); panel.id='mdkr-notifications'; panel.className='panel';
+    panel.innerHTML=`<h3>새 알림 ${items.length}건</h3>`+(items.length?items.map(n=>`<p>⚔️ ${n.type==='OVERTAKEN'?'전일 기록 추월!':'왕좌 탈환 성공!'} <a href="#/chart/${encodeURIComponent(n.chart_id)}">${safe(chartTitle(n.chart_id))}</a></p>`).join(''):'<p class="muted">새로운 알림이 없습니다.</p>')+'<button id="mdkr-read" class="button">모두 읽음</button>';
+    document.querySelector('main').prepend(panel);
+    panel.querySelector('#mdkr-read').onclick=async()=>{const r=await db.rpc('mdkr_mark_notifications_read');if(r.error)alert(msg(r.error));else{panel.remove();renderNotifications()}};
+  };
+}
+async function renderProfileExtras(targetId,own){
+  view.querySelector('#mdkr-profile-extra')?.remove();
+  const area=document.createElement('section');area.id='mdkr-profile-extra';view.append(area);
+  const [pr,owned]=await Promise.all([
+    db.from('profiles').select('nickname,bio,equipped_title_id,created_at').eq('id',targetId).maybeSingle(),
+    db.rpc('mdkr_available_titles',{p_user_id:targetId})
+  ]);
+  if(pr.error||owned.error){area.innerHTML=note('프로필 확장 기능을 불러오지 못했습니다. v0.5 SQL 적용 여부를 확인해주세요. '+msg(pr.error||owned.error));return}
+  const profile=pr.data||{}, titles=owned.data||[];
+  const equipped=titles.find(t=>t.title_id===profile.equipped_title_id&&t.unlocked);
+  const unlocked=titles.filter(t=>t.unlocked);
+  const header=view.querySelector('.section-head h2');
+  if(header){header.innerHTML=`${equipped?titleSpan(equipped)+' ':''}${safe(profile.nickname||'Player')} 프로필`}
+  const [loss,win]=await Promise.all([
+    db.from('mdkr_throne_losses').select('id,reclaimed_at').eq('loser_id',targetId),
+    db.from('mdkr_throne_events').select('id').eq('new_holder_id',targetId)
+  ]);
+  const lossRows=loss.data||[];
+  const reclaimed=lossRows.filter(x=>x.reclaimed_at).length;
+  area.innerHTML=`<div class="panel"><h3>업적과 칭호</h3><div class="profile-grid"><div class="statbox"><strong>${unlocked.length}</strong><small>획득 칭호</small></div><div class="statbox"><strong>${lossRows.length}</strong><small>전일 추월당함</small></div><div class="statbox"><strong>${reclaimed}</strong><small>재탈환 완료</small></div><div class="statbox"><strong>${(win.data||[]).length}</strong><small>전일 획득 이벤트</small></div></div><div class="filters" id="titleFilters"></div><div class="title-grid" id="titleGrid"></div></div>`;
+  if(own){
+    const edit=document.createElement('div');edit.className='panel';
+    edit.innerHTML=`<h3>프로필 편집</h3><label>닉네임 (2~24자)</label><input id="mdkr-nickname" maxlength="24" value="${safe(profile.nickname||'')}"><label>자기소개 (최대 160자)</label><textarea id="mdkr-bio" maxlength="160" rows="3">${safe(profile.bio||'')}</textarea><label>대표 칭호 (하나만)</label><select id="mdkr-equip"><option value="">장착 안 함</option>${unlocked.map(t=>`<option value="${safe(t.title_id)}" ${profile.equipped_title_id===t.title_id?'selected':''}>${safe(t.name)} [${safe(t.rarity)}]</option>`).join('')}</select><button class="button primary" id="mdkr-save" style="margin-top:12px">설정 저장</button><p class="muted" id="mdkr-save-result"></p>`;
+    area.prepend(edit);
+    edit.querySelector('#mdkr-save').onclick=async()=>{
+      const nick=edit.querySelector('#mdkr-nickname').value.trim(),bio=edit.querySelector('#mdkr-bio').value.trim(),tid=edit.querySelector('#mdkr-equip').value||null;
+      const out=edit.querySelector('#mdkr-save-result');
+      if(nick.length<2||nick.length>24){out.textContent='닉네임은 2~24자로 입력해주세요.';return}
+      const r=await db.rpc('mdkr_save_profile',{p_nickname:nick,p_bio:bio,p_title_id:tid});
+      if(r.error)out.textContent='저장 실패: '+msg(r.error);else{out.textContent='저장 완료!';await renderProfileExtras(targetId,true)};
+    };
+  }
+  let filter='all';const filters=area.querySelector('#titleFilters'),grid=area.querySelector('#titleGrid');
+  function draw(){
+    filters.innerHTML=['all','COMMON','RARE','EPIC','LEGENDARY'].map(x=>`<button class="pill ${x===filter?'active':''}" data-rarity="${x}">${x==='all'?'전체':x}</button>`).join('');
+    filters.querySelectorAll('button').forEach(el=>el.onclick=()=>{filter=el.dataset.rarity;draw()});
+    const selected=titles.filter(x=>filter==='all'||x.rarity===filter);
+    grid.innerHTML=selected.map(t=>`<div class="title-card ${t.unlocked?'':'title-locked'}">${titleSpan(t)}<div class="muted">${safe(t.description||'')} ${t.unlocked?'· 획득':'· 미획득'}</div></div>`).join('')||'<p class="muted">해당 등급 칭호가 없습니다.</p>';
+  }
+  draw();
+}
 players=async function(){
   setActive('players');
   const params=new URLSearchParams(location.hash.split('?')[1]||'');
@@ -98,6 +161,7 @@ players=async function(){
         <div class="statbox"><strong>${fmtNum(stat.avg_early,2)} / ${fmtNum(stat.avg_late,2)}</strong><small>평균 E / L</small></div>
       </div></div>
       <div class="panel"><h3>최근 제출 기록</h3>${subs.length?`<div class="table-wrap"><table class="ranks"><thead><tr><th>곡</th><th>판정</th><th>세부</th><th>정확도</th><th>상태</th><th>제출일</th></tr></thead><tbody>${subs.map(r=>`<tr><td><a href="#/chart/${encodeURIComponent(r.chart_id)}">${safe(chartTitle(r.chart_id))}</a></td><td>${safe(r.judge)}</td><td>${detailScore(r)} <span class="muted">(${r.early}/${r.late}, ${r.great}/${r.miss})</span></td><td>${r.accuracy==null?'—':safe(r.accuracy)}</td><td>${safe(r.status)}${r.rejection_reason?`<div class="muted">${safe(r.rejection_reason)}</div>`:''}</td><td>${new Date(r.created_at).toLocaleDateString('ko-KR')}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">아직 제출 기록이 없습니다.</p>'}</div>`;
+    await renderProfileExtras(targetId, targetId===currentUser?.id);
     return;
   }
   view.innerHTML=`<div class="section-head"><div><h2>플레이어 랭킹</h2><div class="muted">전일 · 평균 정확도 · E/L · 포인트 랭킹</div></div></div><div class="filters" id="sortFilters"></div><div class="table-wrap"><table class="ranks"><thead><tr><th>순위</th><th>플레이어</th><th>전일</th><th>포인트</th><th>정확도</th><th>평균 E+L</th><th>TOP 10</th></tr></thead><tbody id="playerRows"><tr><td colspan="7">불러오는 중…</td></tr></tbody></table></div>`;
