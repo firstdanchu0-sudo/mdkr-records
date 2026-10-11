@@ -1,1 +1,51 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#10131b"><meta name="description" content="한국 Muse Dash 10~12레벨 전일 기록 아카이브"><title>MDKR RECORDS — Korean Muse Dash Leaderboard</title><link rel="stylesheet" href="styles.css"></head><body><header><div class="top"><a href="#/" class="logo">MDKR <span>RECORDS</span></a><span class="flag">KR / UNOFFICIAL</span></div></header><main><section class="hero"><p class="overline">KOREAN MUSE DASH LEADERBOARD</p><h1>기록의 이름을<br><em>남기다.</em></h1><p class="intro">10레벨 이상의 모든 채보, 한국 플레이어를 위한 전일 기록 아카이브.</p><div class="numbers"><div><strong id="stat-all">—</strong><small>등록 채보</small></div><div><strong id="stat-hidden">—</strong><small>HIDDEN</small></div><div><strong>TOP 10</strong><small>채보별 랭킹</small></div></div></section><nav class="tabs" aria-label="사이트 메뉴"><a href="#/" data-route="songs">악곡 랭킹</a><a href="#/players" data-route="players">플레이어</a><a href="#/submit" data-route="submit">기록 제출</a><a href="#/admin" data-route="admin">관리자</a></nav><section id="view" aria-live="polite"><div class="empty">악곡 데이터를 불러오는 중입니다…</div></section><footer><p>MDKR RECORDS · 비공식 팬 프로젝트 · 악곡 이미지의 권리는 각 권리자에게 있습니다.</p><p>데이터 출처: <a href="https://github.com/simon300000/musedash.moe" target="_blank" rel="noopener noreferrer">musedash.moe 공개 GitHub</a> · 현재 2개 앨범의 누락 가능성 · 2026-10-11 수집본</p></footer></main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script><script src="config.js" defer></script><script src="app.js" defer></script><script src="backend.js" defer></script></body></html>
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10131b">
+  <meta name="description" content="한국 Muse Dash 10레벨 이상 전일 기록 사이트">
+  <title>MDKR RECORDS — Korean Muse Dash Leaderboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="top">
+      <a href="#/" class="logo">MDKR <span>RECORDS</span></a>
+      <span class="flag">KR / UNOFFICIAL</span>
+    </div>
+  </header>
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="overline">KOREAN MUSE DASH LEADERBOARD</p>
+        <h1>MDKR RECORDS</h1>
+        <p class="intro">한국 Muse Dash 전일 기록 사이트</p>
+        <div class="numbers">
+          <div><strong id="stat-all">—</strong><small>등록 채보</small></div>
+          <div><strong id="stat-hidden">—</strong><small>HIDDEN</small></div>
+          <div><strong>TOP 10</strong><small>채보별 랭킹</small></div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="tabs" aria-label="사이트 메뉴">
+      <a href="#/" data-route="songs">악곡 랭킹</a>
+      <a href="#/players" data-route="players">플레이어</a>
+      <a href="#/submit" data-route="submit">기록 제출</a>
+      <a href="#/admin" data-route="admin">관리자</a>
+    </nav>
+
+    <section id="view" aria-live="polite"><div class="empty">악곡 데이터를 불러오는 중입니다…</div></section>
+
+    <footer>
+      <p>MDKR RECORDS · 비공식 팬 프로젝트 · 악곡 이미지 및 일러스트의 권리는 각 권리자에게 있습니다.</p>
+      <p>데이터 출처: <a href="https://github.com/simon300000/musedash.moe" target="_blank" rel="noopener noreferrer">musedash.moe 공개 GitHub</a> · 2026-10-11 수집본 기준</p>
+    </footer>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+  <script src="config.js" defer></script>
+  <script src="app.js" defer></script>
+  <script src="backend.js" defer></script>
+</body>
+</html>
