@@ -32,14 +32,27 @@ if(!view.querySelector('#ranksbody'))return;
 view.querySelector('#ranksbody').innerHTML=rows.length?rows.map(r=>`<tr><td><strong>${r.rank}위</strong></td><td><a href="#/players?user=${encodeURIComponent(r.user_id)}">${safe(r.nickname)}</a></td><td>${safe(r.judge)}</td><td>${r.early} / ${r.late}</td></tr>`).join(''):`<tr><td colspan="4"><div class="empty">${ready?'아직 승인된 기록이 없습니다.':'랭킹 서버 연결 전입니다.'}</div></td></tr>`;
 };
 players=async function(){
-setActive('players');view.innerHTML='<h2>플레이어 프로필</h2><div class="muted">승인된 기록 기준 · 국내 전일 보유 · 평균 순위</div><div id="profile-data" class="panel">불러오는 중…</div>';
-let target=new URLSearchParams(location.hash.split('?')[1]||'').get('user')||currentUser?.id;
+setActive('players');view.innerHTML='<h2>플레이어 프로필</h2><div class="muted">승인된 기록을 기준으로 집계합니다.</div><div id="profile-data" class="panel">불러오는 중…</div>';
+const params=new URLSearchParams(location.hash.split('?')[1]||'');
+const target=params.get('user')||currentUser?.id;
 const el=view.querySelector('#profile-data');if(!db){el.innerHTML=disableMsg();return}
-if(!target){el.innerHTML='디스코드 로그인하거나 곡별 랭킹에서 플레이어를 선택해주세요.';return}
-const [a,b]=await Promise.all([db.from('profiles').select('nickname,avatar_url').eq('id',target).maybeSingle(),db.from('mdkr_rankings').select('chart_id,rank,judge,early,late').eq('user_id',target)]);
-if(a.error||b.error){el.textContent=msg(a.error||b.error);return}
-const rr=(b.data||[]).filter(x=>x.rank<=10);const wins=rr.filter(x=>x.rank===1).length;const avg=rr.length?(rr.reduce((p,c)=>p+c.rank,0)/rr.length).toFixed(2):'—';
-el.innerHTML=`<h3>${safe(a.data?.nickname||'Player')}</h3><div class="statrow"><div class="statbox"><strong>${wins}</strong>전일 보유</div><div class="statbox"><strong>${avg}</strong>평균 순위</div><div class="statbox"><strong>${rr.length}</strong>TOP 10 진입</div><div class="statbox"><strong>${rr.filter(x=>x.judge==='AP').length}</strong>AP 기록</div></div><h3 style="margin-top:22px">등록 채보</h3>${rr.length?rr.sort((x,y)=>x.rank-y.rank).map(r=>{const s=songs.find(x=>x.chart_id===r.chart_id);return `<p><a href="#/chart/${encodeURIComponent(r.chart_id)}">${safe(s?title(s):r.chart_id)}</a> · ${r.rank}위 · ${safe(r.judge)} ${r.early}/${r.late}</p>`}).join(''):'아직 TOP 10 기록이 없습니다.'}`;
+if(!target){el.textContent='로그인하거나 채보 랭킹에서 플레이어를 선택해 주세요.';return}
+const own=Boolean(currentUser&&currentUser.id===target);
+const requests=[db.from('profiles').select('nickname,avatar_url,created_at').eq('id',target).maybeSingle(),db.from('mdkr_rankings').select('chart_id,rank,judge,early,late').eq('user_id',target)];
+if(own)requests.push(db.from('submissions').select('id,chart_id,judge,early,late,status,rejection_reason,created_at').eq('user_id',target).order('created_at',{ascending:false}).limit(30));
+const [profile,ranking,subs]=await Promise.all(requests);
+if(profile.error||ranking.error||(subs&&subs.error)){el.textContent=msg(profile.error||ranking.error||subs?.error);return}
+const records=(ranking.data||[]).filter(x=>x.rank<=10),wins=records.filter(x=>x.rank===1).length;
+const avg=records.length?(records.reduce((acc,x)=>acc+x.rank,0)/records.length).toFixed(2):'—';
+const nick=profile.data?.nickname||currentUser?.user_metadata?.full_name||'Player';
+const avatar=profile.data?.avatar_url;
+const avatarHtml=avatar&&/^https:\/\//i.test(avatar)?`<img src="${safe(avatar)}" alt="프로필 사진" referrerpolicy="no-referrer" style="width:84px;height:84px;object-fit:cover;border-radius:50%;border:2px solid #555">`:'<div style="width:84px;height:84px;border-radius:50%;background:#313849;display:grid;place-items:center;font-size:32px">♫</div>';
+el.innerHTML=`<div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">${avatarHtml}<div><h2 style="margin:0">${safe(nick)}</h2><p class="muted" style="margin:6px 0">${own?'내 프로필 · ':''}MDKR RECORDS 플레이어${own&&adminUser?' · 관리자':''}</p></div></div>
+<div class="statrow" style="margin-top:24px"><div class="statbox"><strong>${wins}</strong>전일 보유</div><div class="statbox"><strong>${avg}</strong>평균 순위</div><div class="statbox"><strong>${records.length}</strong>TOP 10 진입</div><div class="statbox"><strong>${records.filter(x=>x.judge==='AP').length}</strong>AP 기록</div></div>
+${own?'<div style="margin-top:26px"><h3>프로필 편집</h3><label for="profile-nickname">표시 이름</label><input id="profile-nickname" maxlength="24" autocomplete="off" style="max-width:320px" value="'+safe(nick)+'"> <button class="button" id="save-profile">이름 저장</button><p class="muted" id="profile-save-msg">프로필 이미지는 Discord 계정에서 최초 연동됩니다.</p></div>':''}
+<h3 style="margin-top:28px">등록 채보 · TOP 10</h3>${records.length?records.sort((x,y)=>x.rank-y.rank).map(r=>{const song=songs.find(x=>x.chart_id===r.chart_id);return `<p><a href="#/chart/${encodeURIComponent(r.chart_id)}">${safe(song?title(song):r.chart_id)}</a> · ${r.rank}위 · ${safe(r.judge)} · EARLY ${r.early} / LATE ${r.late}</p>`}).join(''):'<p class="muted">아직 TOP 10에 진입한 기록이 없습니다.</p>'}
+${own?'<h3 style="margin-top:28px">내 제출 내역</h3>'+((subs?.data||[]).length?(subs.data.map(r=>{const song=songs.find(x=>x.chart_id===r.chart_id);const label={PENDING:'검수 대기',APPROVED:'승인',REJECTED:'반려',VOIDED:'무효'}[r.status]||r.status;return `<p><strong>${safe(label)}</strong> · ${safe(song?title(song):r.chart_id)} · ${safe(r.judge)} ${r.early}E/${r.late}L${r.rejection_reason?' · 사유: '+safe(r.rejection_reason):''}</p>`}).join('')):'<p class="muted">제출한 기록이 없습니다.</p>'):''}`;
+if(own){const save=el.querySelector('#save-profile');save.onclick=async()=>{const input=el.querySelector('#profile-nickname'),out=el.querySelector('#profile-save-msg'),name=input.value.trim();if(name.length<2||name.length>24){out.textContent='표시 이름은 2~24자로 입력하세요.';return}save.disabled=true;const r=await db.from('profiles').update({nickname:name}).eq('id',currentUser.id);save.disabled=false;if(r.error){out.textContent='저장 실패: '+msg(r.error)}else{out.textContent='표시 이름이 저장되었습니다.';el.querySelector('h2').textContent=name}}}
 };
 submit=function(){
 setActive('submit');const selected=new URLSearchParams(location.hash.split('?')[1]||'').get('chart')||'';
