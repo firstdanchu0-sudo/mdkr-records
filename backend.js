@@ -93,6 +93,20 @@ async function getEquippedTitles(userIds){
   if(catalog.error)throw catalog.error;
   const byId=new Map((catalog.data||[]).map(t=>[t.id,t]));
   for(const p of assigned){const t=byId.get(p.equipped_title_id);if(t)result.set(p.id,t)}
+  // Rare song titles and legendary Lv.12 song titles are computed by
+  // mdkr_available_titles(), not persisted in mdkr_title_catalog.
+  // Only request the RPC for profiles whose equipped ID is absent from catalog.
+  const dynamic=assigned.filter(p=>!byId.has(p.equipped_title_id));
+  const lookups=await Promise.allSettled(dynamic.map(async p=>{
+    const r=await db.rpc('mdkr_available_titles',{p_user_id:p.id});
+    if(r.error)throw r.error;
+    const t=(r.data||[]).find(x=>x.title_id===p.equipped_title_id&&x.unlocked);
+    return t?{id:p.id,title:{name:t.name,rarity:t.rarity}}:null;
+  }));
+  for(const r of lookups){
+    if(r.status==='fulfilled'&&r.value)result.set(r.value.id,r.value.title);
+    else if(r.status==='rejected')console.warn('악곡 칭호 조회 실패:',r.reason);
+  }
   return result;
 }
 

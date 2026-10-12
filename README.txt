@@ -1,23 +1,9 @@
-MDKR RECORDS v0.6 — 설치 방법
+MDKR RECORDS 칭호 표시 수정
 
-1) Supabase DB 백업. 이미 v0.5 SQL이 적용되어 있어야 합니다.
-2) Supabase SQL Editor에서 supabase_migration_v06.sql 실행.
-3) GitHub 저장소 루트의 backend.js, styles.css를 이 압축 파일 것으로 교체한 뒤 Commit/Push.
-4) GitHub Pages 반영 후 Ctrl+Shift+R.
+원인: RARE/LEGENDARY 악곡명 칭호는 mdkr_title_catalog에 저장되지 않고 mdkr_available_titles RPC가 동적으로 생성합니다. 기존 랭킹 표시 함수는 카탈로그만 조회했습니다.
 
-개선 사항:
-- 곡 검색에 매칭되는 채보만 출력 (최대 200), 커버/곡 정보 미리보기
-- AP GREAT/MISS 0 고정, FC MISS 0 고정, 세부 점수 미리보기, 업로드 사진 미리보기
-- 일부 누적형 칭호 진행도 (현재 수치 조회 가능한 종류만 표시)
-- 내 기록의 상태 한글화 및 반려 사유/재제출 바로가기
-- 관리자 반려 사유 예시
-- 관리자 증빙 스크린샷 선택 삭제: APPROVED/PENDING/REJECTED/VOIDED, 파일만 삭제/DB 기록 유지
-- 삭제 시 감사 로그 기록, 승인 파일은 추가 문구 인증
+적용: backend.js만 GitHub 저장소 루트에 덮어쓰고 Commit / Push 하세요. SQL은 변경하지 않습니다.
 
-주의:
-- 스크린샷 삭제는 영구적이며 원본 증빙 복구가 불가능합니다. 삭제 전에 백업을 권장합니다.
-- 증빙 이미지만 지우므로 승인 기록/순위는 유지됩니다.
-- 기존 '기록 삭제' 버튼은 DB 기록 삭제 RPC를 사용하며 별도입니다.
-- 화면에 표시되는 300건 범위에서 선택할 수 있습니다. 현재 기록에 연결되지 않은 저장소 고아 파일의 탐색은 포함하지 않습니다.
-- 칭호 진행도는 일부 칭호만 표시합니다. 최종 지급 조건 판정은 DB RPC가 결정합니다.
-- 개발 환경에서 JS 문법 검사 완료, 실서비스 Supabase 권한 테스트는 별도로 필요합니다.
+확인: 레어 악곡명 또는 Lv.12 레전더리 악곡명 칭호를 장착한 뒤 곡별 TOP10과 플레이어 랭킹을 열어 보세요.
+
+참고: EPIC 특별 칭호가 여전히 누락된다면 해당 계정에서 칭호가 실제 장착되어 있는지와 mdkr_available_titles RPC 결과를 확인해야 합니다.
