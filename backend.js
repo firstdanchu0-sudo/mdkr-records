@@ -65,7 +65,10 @@ chartPage=async function(id){
   let rows=[];
   try{rows=await fetchRanks(id)}catch(e){view.querySelector('#ranksbody').innerHTML=`<tr><td colspan="6">${safe(msg(e))}</td></tr>`;return}
   const body=view.querySelector('#ranksbody'); if(!body) return;
-  body.innerHTML=rows.length?rows.map(r=>`<tr><td><strong>${r.rank}위</strong></td><td><a href="#/players?user=${encodeURIComponent(r.user_id)}">${safe(r.nickname)}</a></td><td>${safe(r.judge)}</td><td>${r.detail_score}</td><td>${r.early} / ${r.late}</td><td>${r.great} / ${r.miss}</td></tr>`).join(''):`<tr><td colspan="6"><div class="empty">아직 승인된 기록이 없습니다.</div></td></tr>`;
+  let equipped=new Map();
+  try{equipped=await getEquippedTitles(rows.map(r=>r.user_id))}catch(e){console.warn('칭호 조회 실패:',e)}
+  if(!view.contains(body))return;
+  body.innerHTML=rows.length?rows.map(r=>`<tr><td><strong>${r.rank}위</strong></td><td><a href="#/players?user=${encodeURIComponent(r.user_id)}">${titleSpan(equipped.get(r.user_id))}${equipped.has(r.user_id)?" ":""}${safe(r.nickname)}</a></td><td>${safe(r.judge)}</td><td>${r.detail_score}</td><td>${r.early} / ${r.late}</td><td>${r.great} / ${r.miss}</td></tr>`).join(''):`<tr><td colspan="6"><div class="empty">아직 승인된 기록이 없습니다.</div></td></tr>`;
 };
 async function fetchPlayerStats(){
   if(!db) return [];
@@ -76,6 +79,23 @@ async function fetchPlayerStats(){
 function fmtNum(v,fix=2){return (v===null||v===undefined||Number.isNaN(Number(v)))?'—':Number(v).toFixed(fix)}
 const titleColors={COMMON:'#F3F0EA',RARE:'#83BBFF',EPIC:'#C39AFF',LEGENDARY:'#F4C873'};
 function titleSpan(t){return t?`<span class="title-chip" style="color:${titleColors[t.rarity]||'#F3F0EA'}">${safe(t.name)}</span>`:''}
+// Public equipped titles for ranking tables. Never infer unlocks from user input.
+async function getEquippedTitles(userIds){
+  const ids=[...new Set(userIds.filter(Boolean))];
+  const result=new Map();
+  if(!db||!ids.length)return result;
+  const profiles=await db.from('profiles').select('id,equipped_title_id').in('id',ids);
+  if(profiles.error)throw profiles.error;
+  const assigned=(profiles.data||[]).filter(p=>p.equipped_title_id);
+  if(!assigned.length)return result;
+  const wanted=[...new Set(assigned.map(p=>p.equipped_title_id))];
+  const catalog=await db.from('mdkr_title_catalog').select('id,name,rarity').in('id',wanted);
+  if(catalog.error)throw catalog.error;
+  const byId=new Map((catalog.data||[]).map(t=>[t.id,t]));
+  for(const p of assigned){const t=byId.get(p.equipped_title_id);if(t)result.set(p.id,t)}
+  return result;
+}
+
 async function renderNotifications(){
   if(!db||!currentUser)return;
   const q=await db.from('mdkr_notifications').select('id,type,chart_id,created_at,read_at,actor_id').is('read_at',null).order('created_at',{ascending:false}).limit(30);
@@ -94,6 +114,27 @@ async function renderNotifications(){
     document.querySelector('main').prepend(panel);
     panel.querySelector('#mdkr-read').onclick=async()=>{const r=await db.rpc('mdkr_mark_notifications_read');if(r.error)alert(msg(r.error));else{panel.remove();renderNotifications()}};
   };
+}
+async function getTitleProgress(id){
+ const [a,b,c]=await Promise.all([
+  db.from('submissions').select('chart_id,judge,level,status').eq('user_id',id).eq('status','APPROVED').limit(1000),
+  db.from('mdkr_rankings').select('chart_id,rank,level').eq('user_id',id).limit(1000),
+  db.from('mdkr_throne_losses').select('id,reclaimed_at').eq('loser_id',id).limit(1000)
+ ]);
+ const rows=a.data||[], rank=b.data||[], losses=c.data||[];
+ return {charts:new Set(rows.map(x=>x.chart_id)).size, ap:new Set(rows.filter(x=>x.judge==='AP').map(x=>x.chart_id)).size,
+ lv12:new Set(rows.filter(x=>x.level===12).map(x=>x.chart_id)).size, lv12ap:new Set(rows.filter(x=>x.level===12&&x.judge==='AP').map(x=>x.chart_id)).size,
+ firsts:rank.filter(x=>x.rank===1).length,top10:rank.filter(x=>x.rank<=10).length,reclaims:losses.filter(x=>x.reclaimed_at).length};
+}
+function titleProgress(t,s){
+ const requirements={'기쁜':['charts',1],'친절한':['charts',10],'배고픈':['charts',20],'시끄러운':['charts',30],
+ '달콤한':['ap',5],'예쁜':['ap',3],'안전한':['ap',10],'완벽주의자':['ap',100],
+ '용감한':['lv12',1],'매운':['lv12',3],'무거운':['lv12',10],'악마':['lv12ap',10],
+ '멋있는':['firsts',3],'챔피언':['firsts',10],'왕':['firsts',30],'여왕':['firsts',30],
+ '황제':['firsts',50],'1등':['firsts',100],'중요한':['top10',50],
+ '행복한':['reclaims',3],'도전자':['reclaims',10],'로드':['reclaims',20],'인간승리':['reclaims',30]};
+ const r=requirements[t.name];if(!r)return '';
+ const num=Math.min(s[r[0]]||0,r[1]);return `<div class="mdkr-progress"><div class="mdkr-progress-track"><span style="width:${100*num/r[1]}%"></span></div><small>${num} / ${r[1]} · ${t.unlocked?'획득 완료':'진행 중'}</small></div>`;
 }
 async function renderProfileExtras(targetId,own){
   view.querySelector('#mdkr-profile-extra')?.remove();
@@ -127,12 +168,13 @@ async function renderProfileExtras(targetId,own){
       if(r.error)out.textContent='저장 실패: '+msg(r.error);else{out.textContent='저장 완료!';await renderProfileExtras(targetId,true)};
     };
   }
+  const progressStats=await getTitleProgress(targetId);
   let filter='all';const filters=area.querySelector('#titleFilters'),grid=area.querySelector('#titleGrid');
   function draw(){
     filters.innerHTML=['all','COMMON','RARE','EPIC','LEGENDARY'].map(x=>`<button class="pill ${x===filter?'active':''}" data-rarity="${x}">${x==='all'?'전체':x}</button>`).join('');
     filters.querySelectorAll('button').forEach(el=>el.onclick=()=>{filter=el.dataset.rarity;draw()});
     const selected=titles.filter(x=>filter==='all'||x.rarity===filter);
-    grid.innerHTML=selected.map(t=>`<div class="title-card ${t.unlocked?'':'title-locked'}">${titleSpan(t)}<div class="muted">${safe(t.description||'')} ${t.unlocked?'· 획득':'· 미획득'}</div></div>`).join('')||'<p class="muted">해당 등급 칭호가 없습니다.</p>';
+    grid.innerHTML=selected.map(t=>`<div class="title-card ${t.unlocked?'':'title-locked'}">${titleSpan(t)}<div class="muted">${safe(t.description||'')} ${t.unlocked?'· 획득':'· 미획득'}</div>${titleProgress(t,progressStats)}</div>`).join('')||'<p class="muted">해당 등급 칭호가 없습니다.</p>';
   }
   draw();
 }
@@ -160,12 +202,15 @@ players=async function(){
         <div class="statbox"><strong>${fmtNum(stat.avg_el,2)}</strong><small>평균 E+L</small></div>
         <div class="statbox"><strong>${fmtNum(stat.avg_early,2)} / ${fmtNum(stat.avg_late,2)}</strong><small>평균 E / L</small></div>
       </div></div>
-      <div class="panel"><h3>최근 제출 기록</h3>${subs.length?`<div class="table-wrap"><table class="ranks"><thead><tr><th>곡</th><th>판정</th><th>세부</th><th>정확도</th><th>상태</th><th>제출일</th></tr></thead><tbody>${subs.map(r=>`<tr><td><a href="#/chart/${encodeURIComponent(r.chart_id)}">${safe(chartTitle(r.chart_id))}</a></td><td>${safe(r.judge)}</td><td>${detailScore(r)} <span class="muted">(${r.early}/${r.late}, ${r.great}/${r.miss})</span></td><td>${r.accuracy==null?'—':safe(r.accuracy)}</td><td>${safe(r.status)}${r.rejection_reason?`<div class="muted">${safe(r.rejection_reason)}</div>`:''}</td><td>${new Date(r.created_at).toLocaleDateString('ko-KR')}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">아직 제출 기록이 없습니다.</p>'}</div>`;
+      <div class="panel"><h3>최근 제출 기록</h3>${subs.length?`<div class="table-wrap"><table class="ranks"><thead><tr><th>곡</th><th>판정</th><th>세부</th><th>정확도</th><th>상태</th><th>제출일</th></tr></thead><tbody>${subs.map(r=>`<tr><td><a href="#/chart/${encodeURIComponent(r.chart_id)}">${safe(chartTitle(r.chart_id))}</a></td><td>${safe(r.judge)}</td><td>${detailScore(r)} <span class="muted">(${r.early}/${r.late}, ${r.great}/${r.miss})</span></td><td>${r.accuracy==null?'—':safe(r.accuracy)}</td><td>${safe(({PENDING:'검수 대기',APPROVED:'승인 완료',REJECTED:'반려됨',VOIDED:'무효 처리'})[r.status]||r.status)}${r.status==='REJECTED'&&targetId===currentUser?.id?` <a class="back" href="#/submit?chart=${encodeURIComponent(r.chart_id)}">다시 제출</a>`:''}${r.rejection_reason?`<div class="muted">${safe(r.rejection_reason)}</div>`:''}</td><td>${new Date(r.created_at).toLocaleDateString('ko-KR')}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">아직 제출 기록이 없습니다.</p>'}</div>`;
     await renderProfileExtras(targetId, targetId===currentUser?.id);
     return;
   }
   view.innerHTML=`<div class="section-head"><div><h2>플레이어 랭킹</h2><div class="muted">전일 · 평균 정확도 · E/L · 포인트 랭킹</div></div></div><div class="filters" id="sortFilters"></div><div class="table-wrap"><table class="ranks"><thead><tr><th>순위</th><th>플레이어</th><th>전일</th><th>포인트</th><th>정확도</th><th>평균 E+L</th><th>TOP 10</th></tr></thead><tbody id="playerRows"><tr><td colspan="7">불러오는 중…</td></tr></tbody></table></div>`;
   const all=await fetchPlayerStats();
+  let equipped=new Map();
+  try{equipped=await getEquippedTitles(all.map(r=>r.user_id))}catch(e){console.warn('칭호 조회 실패:',e)}
+  if(!view.querySelector('#playerRows'))return;
   let sort='points';
   function sorted(){
     const arr=[...all];
@@ -184,7 +229,7 @@ players=async function(){
     filters.querySelectorAll('[data-sort]').forEach(b=>b.onclick=()=>{sort=b.dataset.sort;render()});
     const rows=sorted();
     const body=view.querySelector('#playerRows');
-    body.innerHTML=rows.length?rows.map((r,i)=>`<tr><td><strong>${i+1}위</strong></td><td><a href="#/players?user=${encodeURIComponent(r.user_id)}">${safe(r.nickname)}</a></td><td>${r.total_firsts||0}</td><td>${Math.round(r.points||0)}</td><td>${fmtNum(r.avg_accuracy,3)}</td><td>${fmtNum(r.avg_el,2)}</td><td>${r.top10_count||0}</td></tr>`).join(''):'<tr><td colspan="7">표시할 플레이어가 없습니다.</td></tr>';
+    body.innerHTML=rows.length?rows.map((r,i)=>`<tr><td><strong>${i+1}위</strong></td><td><a href="#/players?user=${encodeURIComponent(r.user_id)}">${titleSpan(equipped.get(r.user_id))}${equipped.has(r.user_id)?" ":""}${safe(r.nickname)}</a></td><td>${r.total_firsts||0}</td><td>${Math.round(r.points||0)}</td><td>${fmtNum(r.avg_accuracy,3)}</td><td>${fmtNum(r.avg_el,2)}</td><td>${r.top10_count||0}</td></tr>`).join(''):'<tr><td colspan="7">표시할 플레이어가 없습니다.</td></tr>';
   }
   render();
 };
@@ -192,7 +237,7 @@ submit=async function(){
   setActive('submit');
   const params=new URLSearchParams(location.hash.split('?')[1]||'');
   const selected=params.get('chart');
-  view.innerHTML=`<h2>기록 제출</h2><div id="submitNotice"></div><div class="panel form"><label for="chart-search">곡 검색</label><input id="chart-search" type="text" placeholder="곡명 또는 아티스트 검색"><label for="chart">악곡 및 채보</label><select id="chart"></select><label for="judge">판정</label><select id="judge"><option value="AP">AP</option><option value="FC">FC</option><option value="OTHER">OTHER</option></select><div class="statrow"><div style="flex:1"><label for="accuracy">정확도 (%)</label><input id="accuracy" type="number" min="0" max="100" step="0.001" placeholder="예: 99.823"></div><div style="flex:1"><label for="early">EARLY</label><input id="early" type="number" min="0" value="0"></div><div style="flex:1"><label for="late">LATE</label><input id="late" type="number" min="0" value="0"></div></div><div class="statrow"><div style="flex:1"><label for="great">GREAT</label><input id="great" type="number" min="0" value="0"></div><div style="flex:1"><label for="miss">MISS</label><input id="miss" type="number" min="0" value="0"></div></div><div class="muted">세부값 = EARLY + LATE + GREAT + (MISS × 2)</div><label for="shot">스크린샷</label><input id="shot" type="file" accept="image/png,image/jpeg,image/webp"><button class="button primary" style="margin-top:20px" id="submitBtn">기록 제출</button><div id="submitMsg" class="muted" style="margin-top:12px"></div></div>`;
+  view.innerHTML=`<h2>기록 제출</h2><div id="submitNotice"></div><div class="panel form"><label for="chart-search">곡 검색</label><input id="chart-search" type="text" placeholder="곡명 또는 아티스트 검색"><div id="mdkr-chart-preview" class="mdkr-chart-preview"></div><label for="chart">악곡 및 채보</label><select id="chart"></select><label for="judge">판정</label><select id="judge"><option value="AP">AP</option><option value="FC">FC</option><option value="OTHER">OTHER</option></select><div class="statrow"><div style="flex:1"><label for="accuracy">정확도 (%)</label><input id="accuracy" type="number" min="0" max="100" step="0.001" placeholder="예: 99.823"></div><div style="flex:1"><label for="early">EARLY</label><input id="early" type="number" min="0" value="0"></div><div style="flex:1"><label for="late">LATE</label><input id="late" type="number" min="0" value="0"></div></div><div class="statrow"><div style="flex:1"><label for="great">GREAT</label><input id="great" type="number" min="0" value="0"></div><div style="flex:1"><label for="miss">MISS</label><input id="miss" type="number" min="0" value="0"></div></div><div class="muted">세부값 = EARLY + LATE + GREAT + (MISS × 2)</div><div id="mdkr-detail-preview" class="notice">세부 점수: 0</div><label for="shot">스크린샷</label><input id="shot" type="file" accept="image/png,image/jpeg,image/webp"><div id="mdkr-shot-preview"></div><button class="button primary" style="margin-top:20px" id="submitBtn">기록 제출</button><div id="submitMsg" class="muted" style="margin-top:12px"></div></div>`;
   const info=view.querySelector('#submitNotice');
   if(!db){info.innerHTML=disableMsg();return}
   if(!currentUser){info.innerHTML=note('기록 제출은 Discord 로그인 후 이용할 수 있습니다.');return}
@@ -200,10 +245,19 @@ submit=async function(){
   function renderOptions(query=''){
     const q=query.trim().toLowerCase();
     const filtered=songs.filter(s=>!q||[title(s),s.title,s.title_ko,s.artist].some(v=>String(v??'').toLowerCase().includes(q)));
-    sel.innerHTML=filtered.map(s=>`<option value="${safe(s.chart_id)}" ${selected===s.chart_id?'selected':''}>${safe(title(s))} · Lv.${s.level}${s.chart_type==='HIDDEN'?' HIDDEN':''}</option>`).join('');
+    sel.innerHTML=filtered.slice(0,200).map(s=>`<option value="${safe(s.chart_id)}" ${selected===s.chart_id?'selected':''}>${safe(title(s))} · Lv.${s.level}${s.chart_type==='HIDDEN'?' HIDDEN':''}</option>`).join('');
+    if(selected&&filtered.some(x=>x.chart_id===selected))sel.value=selected;
+    updateSelection();
   }
+  function updateSelection(){const x=songByChart(sel.value);const box=view.querySelector('#mdkr-chart-preview');box.innerHTML=x?`${img(x)}<div><b>${safe(title(x))}</b><p class="muted">${safe(x.artist)} · Lv.${x.level} · ${safe(x.chart_type)}</p></div>`:'<span class="muted">검색 결과가 없습니다.</span>';}
   renderOptions();
   view.querySelector('#chart-search').addEventListener('input',e=>renderOptions(e.target.value));
+  sel.addEventListener('change',updateSelection);
+  const judgeInput=view.querySelector('#judge'),greatInput=view.querySelector('#great'),missInput=view.querySelector('#miss');
+  function refreshJudge(){if(judgeInput.value==='AP'){greatInput.value='0';missInput.value='0'}else if(judgeInput.value==='FC'){missInput.value='0'}greatInput.disabled=judgeInput.value==='AP';missInput.disabled=judgeInput.value!=='OTHER';refreshDetail()}
+  function refreshDetail(){const val=id=>Math.max(0,Number(view.querySelector('#'+id).value)||0);view.querySelector('#mdkr-detail-preview').textContent=`세부 점수: ${val('early')+val('late')+val('great')+val('miss')*2} · ${judgeInput.value} 기록`;}
+  judgeInput.addEventListener('change',refreshJudge);for(const id of ['early','late','great','miss'])view.querySelector('#'+id).addEventListener('input',refreshDetail);refreshJudge();
+  view.querySelector('#shot').addEventListener('change',e=>{const file=e.target.files[0],el=view.querySelector('#mdkr-shot-preview');el.replaceChildren();if(!file)return;if(!file.type.startsWith('image/')){el.textContent='이미지 형식이 아닙니다.';return}const image=document.createElement('img');image.className='mdkr-upload-preview';const url=URL.createObjectURL(file);image.onload=()=>URL.revokeObjectURL(url);image.src=url;image.alt='제출 증빙 미리보기';el.append(image)});
   const submitBtn=view.querySelector('#submitBtn'), out=view.querySelector('#submitMsg');
   submitBtn.onclick=async()=>{
     const chartId=sel.value; const song=songByChart(chartId);
@@ -213,6 +267,7 @@ submit=async function(){
     const early=Number(view.querySelector('#early').value||0),late=Number(view.querySelector('#late').value||0),great=Number(view.querySelector('#great').value||0),miss=Number(view.querySelector('#miss').value||0);
     const file=view.querySelector('#shot').files[0];
     if(!chartId||!song||!Number.isInteger(early)||!Number.isInteger(late)||!Number.isInteger(great)||!Number.isInteger(miss)||early<0||late<0||great<0||miss<0||!file){out.textContent='입력값과 스크린샷을 확인해주세요.';return}
+    if((judge==='AP'&&(great!==0||miss!==0))||(judge==='FC'&&miss!==0)){out.textContent='AP는 GREAT/MISS가 0, FC는 MISS가 0이어야 합니다.';return}
     if(accuracy!==null && (!(accuracy>=0&&accuracy<=100))){out.textContent='정확도는 0~100 사이로 입력해주세요.';return}
     if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>8*1024*1024){out.textContent='PNG/JPG/WebP 이미지만 업로드할 수 있으며 최대 8MB입니다.';return}
     submitBtn.disabled=true; out.textContent='이미지를 업로드하는 중…';
@@ -241,7 +296,39 @@ admin=async function(){
   function itemHtml(x, approved=false){return `<div class="reviewitem" data-id="${safe(x.id)}"><p><b>${safe(chartTitle(x.chart_id))}</b> · ${safe(x.judge)} · 세부 ${detailScore(x)}</p><p class="muted">E/L ${x.early}/${x.late} · G/M ${x.great}/${x.miss}${x.accuracy!=null?` · 정확도 ${safe(x.accuracy)}`:''}</p><p class="muted">제출자 ${safe(x.user_id)} · ${new Date(x.created_at).toLocaleString('ko-KR')}</p><button class="button evidence" data-path="${safe(x.screenshot_path)}">스크린샷 확인</button> ${approved?'':`<button class="button primary decision" data-action="APPROVED">승인</button> <button class="button decision" data-action="REJECTED">반려</button>`} <button class="button danger delete-record">기록 삭제</button><div class="evidencearea"></div><p class="muted output"></p></div>`}
   box.innerHTML=`<h3>승인 대기 · ${pend.length}건 (최대 50건 표시)</h3>${pend.length?pend.map(x=>itemHtml(x,false)).join(''):'<p class="muted">대기 중인 기록이 없습니다.</p>'}<hr class="line"><h3>최근 승인 기록 · ${appr.length}건</h3>${appr.length?appr.map(x=>itemHtml(x,true)).join(''):'<p class="muted">아직 승인 기록이 없습니다.</p>'}`;
   box.querySelectorAll('.evidence').forEach(b=>b.onclick=async()=>{const area=b.closest('.reviewitem').querySelector('.evidencearea'); const res=await db.storage.from('mdkr-evidence').createSignedUrl(b.dataset.path,120); area.innerHTML=res.error?safe(msg(res.error)):`<a href="${safe(res.data.signedUrl)}" target="_blank" rel="noopener">새 탭으로 원본 보기</a><br><img style="max-width:100%;max-height:370px;margin-top:8px" src="${safe(res.data.signedUrl)}" alt="검수용 스크린샷">`;});
-  box.querySelectorAll('.decision').forEach(b=>b.onclick=async()=>{const row=b.closest('.reviewitem'); const act=b.dataset.action; let reason=null; if(act==='REJECTED'){reason=prompt('반려 사유를 3글자 이상 입력하세요.'); if(!reason||reason.trim().length<3) return;} else if(!confirm('이 기록을 승인하고 랭킹에 반영하시겠습니까?')) return; b.disabled=true; const res=await db.rpc('review_mdkr_submission',{p_id:row.dataset.id,p_action:act,p_reason:reason}); if(res.error){row.querySelector('.output').textContent=msg(res.error); b.disabled=false;} else {row.querySelector('.output').textContent=act==='APPROVED'?'승인 완료':'반려 완료'; setTimeout(()=>route(),500);} });
+  box.querySelectorAll('.decision').forEach(b=>b.onclick=async()=>{const row=b.closest('.reviewitem'); const act=b.dataset.action; let reason=null; if(act==='REJECTED'){reason=prompt('반려 사유 (추천: 결과 화면 확인 불가 / 채보 불일치 / 판정 수치 불일치 / 중복 제출 / 이미지 누락)\n사유를 입력하세요.', '결과 화면 확인 불가'); if(!reason||reason.trim().length<3) return;} else if(!confirm('이 기록을 승인하고 랭킹에 반영하시겠습니까?')) return; b.disabled=true; const res=await db.rpc('review_mdkr_submission',{p_id:row.dataset.id,p_action:act,p_reason:reason}); if(res.error){row.querySelector('.output').textContent=msg(res.error); b.disabled=false;} else {row.querySelector('.output').textContent=act==='APPROVED'?'승인 완료':'반려 완료'; setTimeout(()=>route(),500);} });
+  const cleanup=document.createElement('section');cleanup.className='panel';cleanup.id='mdkr-cleanup';
+  cleanup.innerHTML=`<h3>스크린샷 보관함 정리</h3><p class="muted">승인 · 대기 · 반려 · 무효화 기록 모두 선택할 수 있습니다. 이미지 삭제 시 기록과 순위는 유지되지만 증빙은 복구되지 않습니다.</p><div class="filters"><select id="cleanup-status"><option value="ALL">모든 상태</option><option value="APPROVED">승인</option><option value="PENDING">대기</option><option value="REJECTED">반려</option><option value="VOIDED">무효화</option></select><button class="button" id="cleanup-load">대상 불러오기</button></div><div id="cleanup-list"></div><button class="button danger" id="cleanup-delete" disabled>선택한 이미지 영구 삭제</button><p id="cleanup-output" class="muted"></p>`;
+  box.after(cleanup);
+  const load=cleanup.querySelector('#cleanup-load'),list=cleanup.querySelector('#cleanup-list'),del=cleanup.querySelector('#cleanup-delete'),output=cleanup.querySelector('#cleanup-output');
+  let candidates=[];
+  load.onclick=async()=>{
+    output.textContent='보관함을 확인하는 중…';del.disabled=true;
+    let q=db.from('submissions').select('id,chart_id,status,screenshot_path,evidence_deleted_at,created_at').order('created_at',{ascending:false}).limit(300);
+    const st=cleanup.querySelector('#cleanup-status').value;if(st!=='ALL')q=q.eq('status',st);
+    const res=await q;if(res.error){output.textContent=msg(res.error);return}
+    candidates=(res.data||[]).filter(x=>x.screenshot_path&&!x.evidence_deleted_at);
+    list.innerHTML=candidates.length?`<label><input type="checkbox" id="cleanup-all"> 현재 목록 전체 선택</label><div class="mdkr-cleanup-list">${candidates.map(x=>`<label><input type="checkbox" class="cleanup-check" value="${safe(x.id)}"> <b>${safe(chartTitle(x.chart_id))}</b> · ${safe(x.status)} · ${new Date(x.created_at).toLocaleDateString('ko-KR')} <small>${safe(x.screenshot_path)}</small></label>`).join('')}</div>`:'<p class="muted">정리 가능한 이미지가 없습니다.</p>';
+    output.textContent=`최신 ${candidates.length}건 표시 · 오래된 기록은 날짜순으로 별도 조회해야 합니다.`;
+    list.querySelector('#cleanup-all')?.addEventListener('change',e=>{list.querySelectorAll('.cleanup-check').forEach(c=>c.checked=e.target.checked);del.disabled=!e.target.checked});
+    list.querySelectorAll('.cleanup-check').forEach(c=>c.addEventListener('change',()=>{del.disabled=!list.querySelector('.cleanup-check:checked')}));
+  };
+  del.onclick=async()=>{
+    const ids=new Set([...list.querySelectorAll('.cleanup-check:checked')].map(x=>x.value));const chosen=candidates.filter(x=>ids.has(x.id));
+    if(!chosen.length)return;
+    const approved=chosen.filter(x=>x.status==='APPROVED').length;
+    if(!confirm(`${chosen.length}개의 증빙 스크린샷을 영구 삭제하시겠습니까?\n승인 기록 ${approved}건 포함. 기록과 랭킹은 그대로 남지만 검증 이미지가 사라집니다.`))return;
+    if(approved&&prompt('승인 기록 증빙도 삭제됩니다. 계속하려면 삭제합니다 를 정확히 입력하세요.')!=='삭제합니다')return;
+    del.disabled=true;let success=0,failed=[];
+    for(const x of chosen){
+      const rm=await db.storage.from('mdkr-evidence').remove([x.screenshot_path]);
+      if(rm.error){failed.push(`${chartTitle(x.chart_id)}: ${msg(rm.error)}`);continue}
+      const log=await db.rpc('mdkr_log_evidence_cleanup',{p_submission_id:x.id,p_path:x.screenshot_path});
+      if(log.error)failed.push(`${chartTitle(x.chart_id)}: 파일은 삭제되었지만 감사 기록 실패 (${msg(log.error)})`);else success++;
+    }
+    output.textContent=`정리 완료 ${success}건 · 오류 ${failed.length}건. ${failed.join(' / ')}`;
+    await load.onclick();
+  };
   box.querySelectorAll('.delete-record').forEach(b=>b.onclick=async()=>{const row=b.closest('.reviewitem'); if(!confirm('이 기록을 완전히 삭제할까요?')) return; b.disabled=true; const res=await db.rpc('delete_mdkr_submission',{p_id:row.dataset.id}); if(res.error){row.querySelector('.output').textContent=msg(res.error); b.disabled=false;} else {row.querySelector('.output').textContent='삭제 완료'; setTimeout(()=>route(),300);} });
 };
 if(db){db.auth.onAuthStateChange(()=>{setTimeout(startAuth,0)})}

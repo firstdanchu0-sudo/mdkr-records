@@ -1,16 +1,23 @@
-MDKR RECORDS 프로필 개선 패치
+MDKR RECORDS v0.6 — 설치 방법
 
-1. Supabase > Authentication > Users에서 본인 User UID 확인
-2. SQL Editor에서 아래 SQL 실행 (UUID 교체):
-   insert into public.admins (user_id) values ('USER_UID') on conflict (user_id) do nothing;
-3. backend.js 파일을 기존 GitHub 저장소 루트의 backend.js에 덮어쓰기
-4. GitHub Desktop에서 Commit -> Push origin
-5. 사이트에서 Ctrl+Shift+R, 로그인, 내 프로필 클릭
+1) Supabase DB 백업. 이미 v0.5 SQL이 적용되어 있어야 합니다.
+2) Supabase SQL Editor에서 supabase_migration_v06.sql 실행.
+3) GitHub 저장소 루트의 backend.js, styles.css를 이 압축 파일 것으로 교체한 뒤 Commit/Push.
+4) GitHub Pages 반영 후 Ctrl+Shift+R.
 
-개선 내용:
-- Discord 아바타/표시 이름 표기
-- 본인 표시 이름 직접 변경(2~24자)
-- 승인 랭킹을 통한 전일 보유·평순·TOP10·AP 통계
-- 본인 제출 기록 30건, 대기/승인/반려 및 반려 사유
+개선 사항:
+- 곡 검색에 매칭되는 채보만 출력 (최대 200), 커버/곡 정보 미리보기
+- AP GREAT/MISS 0 고정, FC MISS 0 고정, 세부 점수 미리보기, 업로드 사진 미리보기
+- 일부 누적형 칭호 진행도 (현재 수치 조회 가능한 종류만 표시)
+- 내 기록의 상태 한글화 및 반려 사유/재제출 바로가기
+- 관리자 반려 사유 예시
+- 관리자 증빙 스크린샷 선택 삭제: APPROVED/PENDING/REJECTED/VOIDED, 파일만 삭제/DB 기록 유지
+- 삭제 시 감사 로그 기록, 승인 파일은 추가 문구 인증
 
-config.js 및 Supabase SQL 변경 없음.
+주의:
+- 스크린샷 삭제는 영구적이며 원본 증빙 복구가 불가능합니다. 삭제 전에 백업을 권장합니다.
+- 증빙 이미지만 지우므로 승인 기록/순위는 유지됩니다.
+- 기존 '기록 삭제' 버튼은 DB 기록 삭제 RPC를 사용하며 별도입니다.
+- 화면에 표시되는 300건 범위에서 선택할 수 있습니다. 현재 기록에 연결되지 않은 저장소 고아 파일의 탐색은 포함하지 않습니다.
+- 칭호 진행도는 일부 칭호만 표시합니다. 최종 지급 조건 판정은 DB RPC가 결정합니다.
+- 개발 환경에서 JS 문법 검사 완료, 실서비스 Supabase 권한 테스트는 별도로 필요합니다.
