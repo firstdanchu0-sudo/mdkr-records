@@ -1,0 +1,6 @@
+.mdkr-favorite-list{display:grid;gap:10px;margin-top:14px}
+.mdkr-favorite-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:rgba(128,128,128,.08)}
+.mdkr-favorite-position{width:24px;text-align:center;font-weight:800;color:#d8ae70}
+.mdkr-favorite-cover{width:48px;height:48px;object-fit:cover;border-radius:8px}
+.mdkr-favorite-row a{flex:1;min-width:0;overflow-wrap:anywhere}
+.mdkr-favorite-row strong{white-space:nowrap;color:#d8ae70}
