@@ -348,3 +348,4 @@ admin=async function(){
 if(db){db.auth.onAuthStateChange(()=>{setTimeout(startAuth,0)})}
 startAuth();
 })();
+<script src="mdkr_edit.js" defer></script>
