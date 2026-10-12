@@ -1,9 +1,23 @@
-MDKR RECORDS 칭호 표시 수정
+MDKR v0.7 — 기록 수정 신청 기능
 
-원인: RARE/LEGENDARY 악곡명 칭호는 mdkr_title_catalog에 저장되지 않고 mdkr_available_titles RPC가 동적으로 생성합니다. 기존 랭킹 표시 함수는 카탈로그만 조회했습니다.
+설치 순서
+1. Supabase DB를 먼저 백업하세요.
+2. supabase_migration_v07.sql을 Supabase SQL Editor에서 1회 실행하세요.
+3. mdkr_edit.js를 GitHub Pages 저장소 루트에 업로드하세요.
+4. 기존 index.html 끝의 <script src="backend.js" defer></script> 다음에
+   <script src="mdkr_edit.js" defer></script> 를 추가하세요.
+5. Commit/Push한 뒤 웹페이지에서 Ctrl+Shift+R 하세요.
 
-적용: backend.js만 GitHub 저장소 루트에 덮어쓰고 Commit / Push 하세요. SQL은 변경하지 않습니다.
+기능
+- 사용자는 '기록 수정 신청' 메뉴에서 기존 승인/대기/반려 기록을 선택하고 수정 수치와 새 증빙을 제출할 수 있습니다.
+- 수정 신청은 기존 기록을 즉시 변경하지 않습니다.
+- 관리자 화면 하단에서 증빙을 검토해 승인/반려할 수 있습니다.
+- 승인 시 옛 기록은 VOIDED로 보존하고, 새 기록을 APPROVED로 생성합니다.
+- 왕좌 이력의 외래키를 유지하기 위해 기존 기록을 물리적으로 삭제하지 않습니다.
+- 반려 사유는 사용자의 수정 신청 내역에 표시됩니다.
 
-확인: 레어 악곡명 또는 Lv.12 레전더리 악곡명 칭호를 장착한 뒤 곡별 TOP10과 플레이어 랭킹을 열어 보세요.
-
-참고: EPIC 특별 칭호가 여전히 누락된다면 해당 계정에서 칭호가 실제 장착되어 있는지와 mdkr_available_titles RPC 결과를 확인해야 합니다.
+주의
+- 사이트가 아닌 Supabase 실운영 환경에서의 종단 간 테스트는 아직 수행하지 않았습니다.
+- 신규 스크린샷을 업로드했다가 신청 등록이 실패하면 고아 파일이 남을 수 있으니 정리 기능으로 관리하세요.
+- 기존 스크린샷을 재사용해 수치를 바꾸면 증빙과 값이 불일치할 수 있으므로 관리자는 원본을 반드시 확인하세요.
+- 수정 승인 후 과거 왕좌 이력은 보존되며 과거 왕좌 이벤트를 소급 재계산하지 않습니다.
