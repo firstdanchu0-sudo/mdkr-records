@@ -57,6 +57,6 @@ players=async function(){
      return `<div class="mdkr-favorite-row"><span class="mdkr-favorite-position">${i+1}</span>${cover}<a href="${link}">${escapeHtml(name)}</a><strong>${Number(item.record_count)||0}회</strong></div>`;
    }).join('');
  }catch(error){console.warn('MDKR v0.8 profile rendering:',error);}
- finally{if(token===seq)target.style.visibility='';}
+ // finally{if(token===seq)target.style.visibility='';}
 };
 })();
