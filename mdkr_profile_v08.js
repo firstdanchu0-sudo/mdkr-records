@@ -18,7 +18,7 @@ players=async function(){
  const target=document.querySelector('#view');
  if(!target)return originalPlayers();
  // Hide any intermediate public recent-record table while original rendering runs.
- target.style.visibility='hidden';
+ // target.style.visibility='hidden';
  try{
    const cfg=window.MDKR_CONFIG||{};
    const client=(cfg.supabaseUrl&&cfg.supabaseAnonKey&&window.supabase?.createClient)
