@@ -1,12 +1,28 @@
-MDKR v0.8.1 UI 긴급 수정
+MDKR RECORDS - Tier v1.0
 
-1. GitHub 저장소 루트의 기존 mdkr_profile_v08.js를 이 ZIP 안의 같은 파일로 덮어씁니다.
-2. index.html은 고치지 마세요. 파일명은 그대로 유지합니다.
-3. Commit / Push 후 사이트에서 Ctrl+Shift+R을 누릅니다.
+1) BACKUP database.
+2) Run mdkr_tier_v10.sql in Supabase SQL Editor.
+3) Upload mdkr_tier_v10.js and mdkr_tier_v10.css to repository root.
+4) index.html HEAD: directly under previous stylesheet:
+   <link rel="stylesheet" href="mdkr_tier_v10.css">
+5) index.html, just above </body>, AFTER mdkr_profile_v08.js:
+   <script src="mdkr_tier_v10.js" defer></script>
+6) Commit, push, Ctrl+Shift+R.
 
-변경사항:
-- 프로필 전체 visibility hidden/visible 토글 제거
-- 페이지를 그릴 때마다 Supabase 클라이언트를 새로 만드는 코드 제거
-- 공개 프로필의 최근 기록 패널을 TOP5로 교체하는 기능은 유지
+New formula per approved personal-best chart:
+Lv10=300, Lv11=450, Lv12=650.
+AP: base x 1.00 (accuracy 100%).
+FC: base x (accuracy/100)^20 x 0.85.
+OTHER: base x (accuracy/100)^20 x 0.65.
+Top 20 DIFFERENT charts only; no extra points for repeated uploads.
+Others/out-of-scope levels: 0 PT.
 
-주의: 서버/API 차원의 공개 기록 접근 정책은 별도 보안 작업입니다.
+UNRANKED < 1000
+STELLAR I-V starts at 1000,1300,1600,2000,2400
+NEBULA I-V starts at 3000,3500,4000,4500,5000
+QUASAR I-V starts at 5500,6000,6500,7000,7500
+COSMOS I-V starts at 8000,8500,9000,9500,10500
+
+This patch changes the existing mdkr_player_stats.points view.
+No record tables or game scores are deleted.
+SQL must run before publishing JS. The patch does not change existing title scoring/requirements.

@@ -1,0 +1,18 @@
+
+.mdkr-tier-panel{--rank:#8993a7;--rank-bg:rgba(137,147,167,.12);margin:14px 0;padding:20px;border:1px solid var(--rank);border-radius:16px;background:linear-gradient(120deg,var(--rank-bg),rgba(12,17,33,.35));}
+.mdkr-tier-panel.stellar,.mdkr-tier-badge.stellar{--rank:#55a8ff;--rank-bg:rgba(85,168,255,.13)}
+.mdkr-tier-panel.nebula,.mdkr-tier-badge.nebula{--rank:#60d6a0;--rank-bg:rgba(96,214,160,.13)}
+.mdkr-tier-panel.quasar,.mdkr-tier-badge.quasar{--rank:#ff686c;--rank-bg:rgba(255,104,108,.13)}
+.mdkr-tier-panel.cosmos,.mdkr-tier-badge.cosmos{--rank:#bc8aff;--rank-bg:rgba(188,138,255,.13)}
+.mdkr-tier-heading{display:flex;align-items:center;gap:15px}
+.mdkr-tier-glyph{color:var(--rank);font-size:36px;text-shadow:0 0 22px var(--rank)}
+.mdkr-tier-info{display:flex;flex-direction:column;flex:1;gap:4px}
+.mdkr-tier-info strong{font-size:21px;letter-spacing:.09em;color:var(--rank)}
+.mdkr-tier-info small,.mdkr-tier-foot{font-size:12px;color:#b4bbcb}
+.mdkr-tier-heading>b{font-size:20px;color:#f8f7ff;font-variant-numeric:tabular-nums}
+.mdkr-tier-track{height:7px;background:#283046;border-radius:9px;overflow:hidden;margin-top:15px}
+.mdkr-tier-fill{height:100%;border-radius:9px;background:var(--rank);box-shadow:0 0 12px var(--rank)}
+.mdkr-tier-foot{margin-top:8px;text-align:right}
+.mdkr-tier-badge{--rank:#8993a7;--rank-bg:rgba(137,147,167,.12);display:inline-block;margin-top:7px;padding:3px 8px;border:1px solid var(--rank);border-radius:30px;background:var(--rank-bg);color:var(--rank);font-size:11px;font-weight:800;letter-spacing:.035em}
+.mdkr-tier-small{display:block;width:max-content;font-size:9px;white-space:nowrap}
+@media(max-width:640px){.mdkr-tier-heading>b{font-size:15px}.mdkr-tier-info strong{font-size:17px}.mdkr-tier-panel{padding:14px}}
