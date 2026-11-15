@@ -68,3 +68,28 @@ body.mdv22-open{overflow:hidden}#mdv22,#mdv22 *{box-sizing:border-box}#mdv22{pos
 @keyframes mdv25-pop{from{opacity:0;transform:scale(.78)}to{opacity:1;transform:scale(1)}}
 @media(max-width:650px){#mdv22 .mdv25-versus{gap:6px;grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr)}#mdv22 .mdv25-versus>div:not(.mdv25-reveal-vs){padding:10px}#mdv22 .mdv25-versus img{width:60px;height:60px}}
 @media(prefers-reduced-motion:reduce){#mdv22 .mdv25-reveal,#mdv22 .mdv25-reveal h2{animation:none}}
+
+/* 2.7 — queue population, linked player profiles and small reveal motion */
+#mdv22 .mdv27-queue-count{display:inline-flex;gap:9px;align-items:center;justify-content:center;margin:9px auto 15px;padding:10px 17px;border:1px solid #43536c;border-radius:999px;background:#1c2940;color:#cbd9ed;font-size:13px}
+#mdv22 .mdv27-queue-count b{font-size:18px;color:#f7cf98;font-variant-numeric:tabular-nums}
+#mdv22 .mdv27-dot{width:8px;height:8px;border-radius:100%;background:#72d5aa;box-shadow:0 0 0 5px #72d5aa20;animation:mdv27-pulse 2s infinite}
+@keyframes mdv27-pulse{50%{box-shadow:0 0 0 9px #72d5aa06;opacity:.65}}
+#mdv22 .mdv27-profile-link{display:flex;flex-direction:column;gap:7px;align-items:center;text-decoration:none;color:inherit;border-radius:12px;padding:5px;transition:background .18s,transform .18s}
+#mdv22 .mdv27-profile-link:hover{background:#ffffff10;transform:translateY(-2px)}
+#mdv22 .mdv27-profile-link:focus-visible{outline:2px solid #f5c783}
+#mdv22 .mdv27-profile-link strong{overflow-wrap:anywhere;max-width:100%}
+#mdv22 .mdv27-ban-duel{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:20px;align-items:center;max-width:520px;margin:12px auto 4px}
+#mdv22 .mdv27-ban-duel>span{font-size:22px;font-weight:900;color:#e8bc7b}
+#mdv22 .mdv27-duel-person{display:flex;flex-direction:column;align-items:center;min-width:0;text-align:center;gap:5px}
+#mdv22 .mdv27-duel-person img,#mdv22 .mdv27-duel-person .mdv23-avatar-fallback{width:70px;height:70px;border-radius:50%;object-fit:cover;display:grid;place-items:center;background:#2f405e}
+#mdv22 .mdv27-record-button{display:inline-flex;padding:9px 15px;border-radius:8px;border:1px solid #657999;background:#25354f;color:#e6eeff;text-decoration:none;font-size:13px}
+#mdv22 .mdv27-record-button:hover{background:#344964}
+#mdv22 .mdv27-profile-actions{margin:0 0 18px}
+#mdv22 .mdv27-track-appear{animation:mdv27-track-in .55s cubic-bezier(.21,1,.35,1) both}
+#mdv22 .mdv27-track-appear>img{animation:mdv27-cover-in .8s cubic-bezier(.2,1,.3,1) both}
+#mdv22 .mdv27-last-track{animation:mdv27-track-in .6s ease both}
+#mdv22 .mdv27-last-track img{animation:mdv27-cover-in .7s ease both}
+#mdv22 .mdv27-last-track strong{font-size:17px}
+@keyframes mdv27-track-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes mdv27-cover-in{from{opacity:0;filter:blur(7px);transform:scale(.89)}to{opacity:1;filter:blur(0);transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){#mdv22 .mdv27-dot,#mdv22 .mdv27-track-appear,#mdv22 .mdv27-track-appear>img,#mdv22 .mdv27-last-track,#mdv22 .mdv27-last-track img{animation:none}}
