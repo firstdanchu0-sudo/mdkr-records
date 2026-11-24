@@ -28,14 +28,14 @@ function row(r){
  const details=judge==='AP'?`E/L ${e} / ${l}`:`${Number(r.accuracy??0).toFixed(3)}% · E/L ${e} / ${l}`;
  return `<article class="mdkr-activity-row">
   <a class="mdkr-activity-cover" href="${link}" aria-label="${esc(title)} 채보 보기">${cover?`<img loading="lazy" src="${esc(cover)}" alt="" onerror="this.style.display='none'">`:'♪'}</a>
-  <div class="mdkr-activity-main"><div class="mdkr-activity-line"><a href="${user}" class="mdkr-activity-person">${avatar?`<img class="mdkr-activity-avatar" src="${esc(avatar)}" alt="" referrerpolicy="no-referrer" onerror="this.style.display='none'">`:''}${esc(r.nickname||'플레이어')}</a><span class="mdkr-activity-action">님의 새 기록</span></div>
+  <div class="mdkr-activity-main"><div class="mdkr-activity-line"><a href="${user}" class="mdkr-activity-person">${avatar?`<img class="mdkr-activity-avatar" src="${esc(avatar)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createTextNode('●'))">`:'●'}${esc(r.nickname||'플레이어')}</a><span class="mdkr-activity-action">님의 새 기록</span></div>
   <a class="mdkr-activity-song" href="${link}">${esc(title)}</a><div class="mdkr-activity-meta"><span>Lv.${esc(r.level??s?.level??'?')}${r.chart_type==='HIDDEN'?' · HIDDEN':''}</span><span class="mdkr-activity-judge ${judge.toLowerCase()}">${judge}</span><span>${esc(details)}</span>${(g||m)?`<span>G/M ${g}/${m}</span>`:''}</div></div>
   <time datetime="${esc(r.submitted_at)}" title="제출일 기준">${esc(timeAgo(r.submitted_at))}</time></article>`;
 }
 function render(){
  if(!active())return;
  const target=document.querySelector('#mdkr-activity-list');if(!target)return;
- const total=isActivity()?50:5;
+ const total=isActivity()?50:15;
  if(!db){target.innerHTML='<p class="mdkr-activity-empty">기록 서버 연결이 필요합니다.</p>';return}
  target.innerHTML=latest.length?latest.slice(0,total).map(row).join(''):'<p class="mdkr-activity-empty">아직 승인된 기록이 없습니다.</p>';
 }
@@ -44,7 +44,7 @@ async function fetchFeed(force=false){
  if(!force&&Date.now()-lastAt<14000)return;
  loadPending=true;
  try{
-  const {data,error}=await db.rpc('mdkr_recent_records',{p_limit:isActivity()?50:5});
+  const {data,error}=await db.rpc('mdkr_recent_records',{p_limit:isActivity()?50:15});
   if(error)throw error;
   latest=data||[];lastAt=Date.now();render();
  }catch(err){const target=document.querySelector('#mdkr-activity-list');if(target)target.innerHTML=`<p class="mdkr-activity-empty">최근 기록을 불러오지 못했습니다. SQL 적용 여부를 확인해 주세요. (${esc(err?.message||err)})</p>`;}
@@ -53,15 +53,22 @@ async function fetchFeed(force=false){
 function section(full=false){return `<section class="mdkr-activity" aria-label="최근 승인 기록"><div class="mdkr-activity-heading"><div><h2>최근 기록</h2><p>관리자 승인 완료 기록 · 제출일 기준</p></div>${full?'<a href="#/" class="mdkr-activity-more">악곡 랭킹</a>':'<a href="#/activity" class="mdkr-activity-more">전체 보기</a>'}</div><div id="mdkr-activity-list"><p class="mdkr-activity-empty">기록 불러오는 중…</p></div></section>`}
 const originalSongList=songList;
 songList=function(...args){const result=originalSongList.apply(this,args);if(isHome()){
- const root=document.querySelector('#view');if(root&&!root.querySelector('.mdkr-activity'))root.insertAdjacentHTML('afterbegin',section(false));
+ const root=document.querySelector('#view');if(root&&!root.querySelector('.mdkr-activity')){
+   const contents=document.createElement('div');contents.className='mdkr-activity-content';
+   while(root.firstChild)contents.appendChild(root.firstChild);
+   root.appendChild(contents);root.insertAdjacentHTML('beforeend',section(false));
+   root.classList.add('mdkr-activity-layout');
+ }
  render();fetchFeed(true);
 }return result};
 const originalRoute=route;
 route=function(...args){if(isActivity()){
  if(typeof setActive==='function')setActive('activity');
- const root=document.querySelector('#view');if(root)root.innerHTML=section(true);
+ const root=document.querySelector('#view');if(root){root.classList.remove('mdkr-activity-layout');root.innerHTML=section(true);}
  render();fetchFeed(true);return;
-}return originalRoute.apply(this,args)};
+}
+ const root=document.querySelector('#view');if(root&&!isHome())root.classList.remove('mdkr-activity-layout');
+ return originalRoute.apply(this,args)};
 setInterval(()=>{if(active())fetchFeed(false)},15000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&active())fetchFeed(false)});
 })();

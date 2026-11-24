@@ -1,0 +1,26 @@
+/* MDKR v2 recent activity sidebar: desktop right rail, mobile inline */
+@media(min-width:1180px){
+  body:has(#view.mdkr-activity-layout) main{max-width:1480px}
+  #view.mdkr-activity-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;align-items:start;gap:22px}
+  #view.mdkr-activity-layout .mdkr-activity-content{min-width:0}
+  #view.mdkr-activity-layout .mdkr-activity{position:sticky;top:82px;margin:0;min-width:0;max-height:min(76vh,820px);display:flex;flex-direction:column}
+  #view.mdkr-activity-layout .mdkr-activity-heading{padding:14px 15px;flex-shrink:0}
+  #view.mdkr-activity-layout .mdkr-activity-heading h2{font-size:16px}
+  #view.mdkr-activity-layout .mdkr-activity-heading p{font-size:10px}
+  #view.mdkr-activity-layout #mdkr-activity-list{overflow-y:auto;overscroll-behavior:contain;min-height:0;scrollbar-width:thin;scrollbar-color:#566179 transparent}
+  #view.mdkr-activity-layout .mdkr-activity-row{padding:11px 12px;gap:8px;flex-wrap:wrap}
+  #view.mdkr-activity-layout .mdkr-activity-cover{width:42px;height:42px;flex-basis:42px}
+  #view.mdkr-activity-layout .mdkr-activity-main{flex:1 1 calc(100% - 55px)}
+  #view.mdkr-activity-layout .mdkr-activity-row>time{margin-left:50px;margin-top:-6px}
+  #view.mdkr-activity-layout .mdkr-activity-meta{gap:5px}
+}
+@media(max-width:1179px){
+ #view.mdkr-activity-layout{display:flex;flex-direction:column}
+ #view.mdkr-activity-layout .mdkr-activity{order:-1;width:100%;margin:0 0 22px}
+ #view.mdkr-activity-layout .mdkr-activity-content{width:100%;min-width:0}
+ #view.mdkr-activity-layout #mdkr-activity-list{max-height:340px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+}
+/* Profile avatar: don't leave a featureless solid disk when missing or broken */
+.mdkr-avatar-initials{display:grid!important;place-items:center!important;font-size:28px!important;font-weight:900!important;color:#f9e2ac!important;background:linear-gradient(135deg,#5554a9,#343d70 55%,#177c96)!important;letter-spacing:-1px;user-select:none}
+.mdkr-avatar-sync-btn{margin-top:12px;font-size:12px}
+.mdkr-avatar-sync-note{font-size:12px;color:var(--muted,#aab);margin-top:6px}
