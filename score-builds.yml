@@ -1,0 +1,23 @@
+name: Update Muse Dash score builds
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '20 18 * * *'
+permissions:
+  contents: write
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/sync_score_builds.py
+      - name: Commit updated score combinations
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/score_builds.json
+          git diff --cached --quiet || (git commit -m 'Update Muse Dash score builds' && git push)
