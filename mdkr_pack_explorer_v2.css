@@ -1,0 +1,87 @@
+/* MDKR Pack Explorer v2 — compact navigation, hierarchy, responsive layout.
+   Loaded after mdkr_qol7.css so the existing site and legacy components remain intact. */
+:root { --mdkr-px-edge: #303a50; --mdkr-px-panel: #151d2d; --mdkr-px-hover: #202a3d; }
+/* Cleaner shell: make the navigation clear without adding another prominent bar. */
+.tabs{gap:5px;align-items:center;padding-bottom:4px;margin-bottom:20px;scrollbar-width:thin}
+.tabs a{padding:11px 14px;font-size:13px;border-radius:9px 9px 0 0;transition:background .15s ease,color .15s ease}
+.tabs a:hover{background:#20283a;color:#f1efe8}
+.tabs a.active{background:#24283a;color:#f4d49d}
+.mdkr-banner-toggle{padding:9px 11px;align-self:auto;border:1px solid #303a50;border-radius:8px;background:#141c2c;margin:0 0 0 auto}
+.mdkr-banner-toggle:hover{background:#232b3d}
+#mdkr-bgm-wrap{gap:8px}
+#mdkr-bgm-wrap .mdkr-bgm-button{padding:8px 10px;border-radius:8px}
+#mdkr-bgm-wrap .mdkr-bgm-slider input{width:68px}
+/* Main browser surface, intentionally low contrast to avoid visual competition with album art. */
+#mdkr-pack-explorer{margin:14px 0 17px;border:1px solid var(--mdkr-px-edge);background:var(--mdkr-px-panel);border-radius:14px;padding:15px 17px;min-width:0}
+.mdkr-px-head{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.mdkr-px-title{display:flex;align-items:center;gap:10px;min-width:0}
+.mdkr-px-title>div{display:flex;flex-direction:column;gap:3px}
+.mdkr-px-title strong{font-size:15px;letter-spacing:-.01em}
+.mdkr-px-title small{font-size:11px;color:#9facbf}
+.mdkr-px-heading-icon{width:34px;height:34px;display:grid;place-items:center;background:#293246;border:1px solid #394458;border-radius:9px;font-size:17px;color:#e9c996}
+.mdkr-px-modes{display:flex;border:1px solid #354057;background:#0f1827;border-radius:9px;padding:3px;gap:3px}
+.mdkr-px-modes button{background:transparent;color:#adb7c8;border:0;padding:8px 12px;font-size:12px;font-weight:700;border-radius:6px;cursor:pointer}
+.mdkr-px-modes button:hover{color:#f4f0e9}
+.mdkr-px-modes button.active{background:#334058;color:#f4d49d;box-shadow:0 1px 3px #0003}
+.mdkr-px-body{margin-top:15px;border-top:1px solid #2c3749;padding-top:13px}
+.mdkr-px-body[hidden]{display:none}
+#mdkr-px-path{display:flex;align-items:center;flex-wrap:wrap;gap:6px;color:#8696ad;font-size:12px;line-height:1.7;margin-bottom:11px}
+.mdkr-px-crumb{border:0;background:transparent;color:#bdc9d8;padding:2px 4px;border-radius:4px;font-size:12px;cursor:pointer}
+.mdkr-px-crumb:hover:not(:disabled){text-decoration:underline;color:#f7e6c0}
+.mdkr-px-crumb.current{color:#edca93;font-weight:750;cursor:default}
+.mdkr-px-crumb:disabled{opacity:1}
+.mdkr-px-searchbox{display:flex;align-items:center;gap:10px;border:1px solid #344258;border-radius:9px;background:#111929;padding:0 11px;margin-bottom:10px;max-width:450px}
+.mdkr-px-searchbox span{color:#a1acc3;font-size:18px}
+#mdkr-px-search{height:40px;min-width:0;width:100%;border:0;outline:none;background:transparent;color:#eef0f8;font-size:13px}
+#mdkr-px-search:focus-visible{outline:none}
+.mdkr-px-searchbox:focus-within{border-color:#c6a875;box-shadow:0 0 0 2px #c6a87520}
+#mdkr-px-search[hidden]{display:none}
+.mdkr-px-searchbox:has(#mdkr-px-search[hidden]){display:none}
+.mdkr-px-summary{color:#9facbf;font-size:12px;margin:8px 0 12px;line-height:1.5}
+.mdkr-px-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.mdkr-px-card{display:flex;align-items:center;gap:10px;min-width:0;width:100%;background:#20293b;color:#f2f3f7;border:1px solid #364153;border-radius:11px;padding:12px;text-align:left;cursor:pointer;transition:background .14s ease,border-color .14s ease,transform .14s ease}
+.mdkr-px-card:hover{background:#2a344a;border-color:#85765f;transform:translateY(-1px)}
+.mdkr-px-card:focus-visible{outline:2px solid #e9c996;outline-offset:2px}
+.mdkr-px-icon{width:47px;height:47px;min-width:47px;display:grid;place-items:center;overflow:hidden;border-radius:10px;background:linear-gradient(145deg,#343d56,#222d40);font-size:23px}
+.mdkr-px-icon.has-cover{background:#151a25;border-radius:7px}
+.mdkr-px-icon img{width:100%;height:100%;object-fit:cover}
+.mdkr-px-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}
+.mdkr-px-copy strong{font-size:12px;line-height:1.4;word-break:keep-all;overflow-wrap:anywhere}
+.mdkr-px-copy small{font-size:10px;color:#a6b2c4;line-height:1.4;overflow:hidden;text-overflow:ellipsis}
+.mdkr-px-count{flex:none;align-self:flex-start;background:#303c50;border-radius:6px;padding:4px 6px;font-size:10px;color:#c0cbdb;white-space:nowrap}
+.mdkr-px-grid.selected-pack{display:flex}
+.mdkr-px-back{color:#dfc292;background:#232c40;border:1px solid #43485a;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:650;cursor:pointer}
+.mdkr-px-back:hover{background:#303a50}
+.mdkr-px-choose{grid-column:1/-1;padding:40px 15px;text-align:center;color:#a5afbf;background:#171f2e;border:1px dashed #35445a;border-radius:12px;font-size:13px}
+.mdkr-px-empty{font-size:12px;color:#a5afbf}
+/* Gentle card rhythm across the rest of the site; keep actual rankings/data intact. */
+#view .section-head{gap:12px}
+#view .filters{gap:7px}
+#view .pill{font-size:12px}
+#view .grid{row-gap:12px;column-gap:12px}
+#view .song{transition:border-color .15s ease,background .15s ease}
+#view .song:hover{border-color:#8e8069}
+/* Responsive: reduce duplication of controls and keep the category tiles readable. */
+@media(min-width:1550px){#mdkr-px-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:1000px){.mdkr-px-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mdkr-px-count{font-size:9px}}
+@media(max-width:660px){
+ .tabs{gap:2px;flex-wrap:nowrap}
+ .tabs a{padding:11px 9px;font-size:12px}
+ .mdkr-banner-toggle{font-size:11px;padding:7px 8px}
+ #mdkr-pack-explorer{padding:12px;border-radius:12px}
+ .mdkr-px-head{align-items:flex-start}
+ .mdkr-px-modes{width:100%}
+ .mdkr-px-modes button{flex:1}
+ .mdkr-px-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .mdkr-px-card{padding:9px;gap:7px;flex-wrap:wrap}
+ .mdkr-px-icon{width:38px;height:38px;min-width:38px;font-size:19px}
+ .mdkr-px-copy{flex-basis:calc(100% - 50px)}
+ .mdkr-px-count{margin-left:auto}
+ .mdkr-px-copy strong{font-size:11px}
+ .mdkr-px-copy small{font-size:10px}
+}
+@media(max-width:370px){.mdkr-px-grid{grid-template-columns:1fr}.mdkr-px-card{flex-wrap:nowrap}}
+@media(prefers-reduced-motion:reduce){.mdkr-px-card,.tabs a,#view .song{transition:none!important}}
+
+/* Show the song search/filter controls only after a leaf pack was chosen. */
+.mdkr-px-picking > #query,.mdkr-px-picking > #levelFilters,.mdkr-px-picking > #typeFilters,.mdkr-px-picking > #count,.mdkr-px-picking > #songsGrid{display:none!important}
