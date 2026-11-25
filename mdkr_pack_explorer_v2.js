@@ -261,3 +261,19 @@ drawCards=function(...args){
 // If a render is triggered before first song data load, the main app's route()
 // will call the overridden songList after data arrives.
 })();
+
+
+// Pack Explorer 2.1: remove a leftover HOME-only right-sidebar grid when
+// navigating to player rankings, profiles, record submission, and admin pages.
+// Do not touch the home page nor the dedicated recent-activity page.
+(()=>{
+  const reset = () => {
+    const hash=location.hash.split('?')[0]||'#/';
+    if(hash==='#/'||hash==='#'||hash==='#/activity') return;
+    const root=document.getElementById('view');
+    if(root)root.classList.remove('mdkr-activity-layout');
+  };
+  window.addEventListener('hashchange', reset);
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',reset,{once:true});
+  else reset();
+})();

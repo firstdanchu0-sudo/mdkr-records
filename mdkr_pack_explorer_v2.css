@@ -85,3 +85,106 @@
 
 /* Show the song search/filter controls only after a leaf pack was chosen. */
 .mdkr-px-picking > #query,.mdkr-px-picking > #levelFilters,.mdkr-px-picking > #typeFilters,.mdkr-px-picking > #count,.mdkr-px-picking > #songsGrid{display:none!important}
+
+
+/* MDKR Pack Explorer 2.1 — NON-HOME layout isolation / ranking table compact fix.
+   The recent-activity home grid is never allowed to constrain ranking/profile/admin pages.
+   Keep this at the end of the CSS so the hotfix wins over earlier sidebar styles. */
+#view.mdkr-activity-layout:not(:has(> .mdkr-activity)) {
+  display: block !important;
+  grid-template-columns: none !important;
+  align-items: initial !important;
+  gap: 0 !important;
+  width: 100%;
+}
+@media (min-width:1180px) {
+  body:has(#view.mdkr-activity-layout:not(:has(> .mdkr-activity))) main {
+    max-width: 1100px !important;
+  }
+}
+/* A stale grid must not leave a phantom right column on non-home screens. */
+#view:not(:has(> .mdkr-activity)) > .section-head,
+#view:not(:has(> .mdkr-activity)) > #sortFilters,
+#view:not(:has(> .mdkr-activity)) > .table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+/* Player ranking: sortable filters in one horizontally scrolling row, no broken wrap. */
+#view #sortFilters {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 3px 0 9px;
+  scrollbar-width: thin;
+}
+#view #sortFilters .pill {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: 9px 13px;
+  font-size: 12px;
+}
+/* Allow rankings to consume the available width. On phones, scroll the table itself. */
+#view:has(#playerRows) > .table-wrap {
+  display: block;
+  overflow-x: auto;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 9px;
+}
+#view:has(#playerRows) .ranks {
+  width: 100%;
+  min-width: 690px;
+  table-layout: auto;
+  border-collapse: collapse;
+}
+#view #playerRows td {
+  padding: 10px 11px;
+  line-height: 1.35;
+  vertical-align: middle;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+#view #playerRows td:nth-child(2) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  width: 28%;
+  min-width: 170px;
+}
+#view #playerRows td:nth-child(4) {
+  white-space: nowrap;
+  min-width: 145px;
+}
+#view #playerRows .mdkr-tier-badge.mdkr-tier-small {
+  display: inline-flex;
+  width: auto;
+  margin: 0 0 0 8px;
+  padding: 2px 6px;
+  vertical-align: middle;
+  align-items: center;
+  white-space: nowrap;
+  font-size: 9px;
+  line-height: 1.25;
+}
+/* Preserve the intentional admin log split and home-side recent activity. */
+#view.mdkr-admin-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+@media (max-width:1190px) {
+  #view.mdkr-admin-split { display: flex; flex-direction: column; }
+}
+@media (max-width:720px) {
+  #view .section-head { gap: 8px; }
+  #view #playerRows td { padding: 9px 10px; font-size: 12px; }
+  #view #playerRows .mdkr-tier-badge.mdkr-tier-small {
+    display: inline-flex;
+    margin-left: 6px;
+    font-size: 8px;
+  }
+  #view #sortFilters .pill { padding: 8px 11px; }
+}
